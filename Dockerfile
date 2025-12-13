@@ -7,7 +7,7 @@
 FROM ubuntu
 
 # Set the working directory (Windows path style)
-WORKDIR /app
+WORKDIR c:/app
 
 # Define the artifact name produced by Maven (Adjust this to your project's name)
 # NOTE: This assumes your JAR is built on the host and copied in the build context.
