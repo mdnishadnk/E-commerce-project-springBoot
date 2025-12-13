@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------
 # Stage 1: Build Stage (Uses a full JDK/Maven image to compile the Java application)
 # ----------------------------------------------------------------------------------
-FROM maven:3.9.5-openjdk-17 AS build
+FROM maven:latest
 
 # Create and set the working directory inside the container
 WORKDIR /app
