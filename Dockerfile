@@ -1,50 +1,25 @@
-# ======================================================================
-# Stage 1: Front-end Build (Node)
-# ======================================================================
-FROM node:20-alpine AS frontend
+# ----------------------------------------------------------------------
+# Single Stage Build (Windows Nanoserver)
+# ----------------------------------------------------------------------
 
-# Set up the working directory for the front-end code
-WORKDIR /app/frontend
+# NOTE: This requires your Docker daemon and Jenkins agent to be configured
+# for Windows containers. This is a large image.
+FROM eclipse-temurin:25-jdk-nanoserver
 
-# Copy package files and install dependencies
-COPY frontend/package.json .
-COPY frontend/package-lock.json .
-RUN npm install
+# Set the working directory (Windows path style)
+WORKDIR C:/app
 
-# Copy source code and build the front-end assets
-COPY frontend/src /app/frontend/src
-RUN npm run build # Assuming this command generates static files in 'dist/'
+# Define the artifact name produced by Maven (Adjust this to your project's name)
+# NOTE: This assumes your JAR is built on the host and copied in the build context.
+ARG JAR_FILE="E-commerce-project-springBoot-0.0.1-SNAPSHOT.jar"
 
-# ======================================================================
-# Stage 2: Back-end Build (Maven/Java)
-# ======================================================================
-FROM openjdk:17-slim-jre
+# Copy the pre-built JAR file from the host machine's target folder
+# NOTE: Windows path separation is often done with backslashes in commands.
+COPY target/%JAR_FILE% C:/app/app.jar
 
-WORKDIR /app
+# Set the port the application runs on
+EXPOSE 8080
 
-# 1. Copy necessary files for Java compilation
-COPY pom.xml .
-COPY src /app/src
-
-# 2. Copy the built static assets from the frontend stage
-# Copy the 'dist' folder (or equivalent) into the Java project's static resources
-COPY --from=frontend /app/frontend/dist /app/src/main/resources/static 
-
-# 3. Build the final executable JAR file
-RUN mvn clean package -DskipTests
-
-ARG JAR_FILE=target/your-application-name-0.0.1-SNAPSHOT.jar
-
-
-# ======================================================================
-# Stage 3: Final Runtime (JRE)
-# ======================================================================
-FROM openjdk:17-jre-slim
-
-EXPOSE 8081
-WORKDIR /app
-
-# Copy the final fat JAR from the backend stage
-COPY --from=backend /app/${JAR_FILE} app.jar
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Command to run the application when the container starts
+# Use powershell for the entrypoint in Windows containers
+ENTRYPOINT ["java", "-jar", "C:/app/app.jar"]
