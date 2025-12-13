@@ -18,7 +18,7 @@ RUN npm run build # Assuming this command generates static files in 'dist/'
 # ======================================================================
 # Stage 2: Back-end Build (Maven/Java)
 # ======================================================================
-FROM maven:3.9-openjdk-17 AS backend
+FROM openjdk:17-slim-jre
 
 WORKDIR /app
 
