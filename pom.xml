@@ -18,5 +18,8 @@
     <properties>
         <java.version>17</java.version>
     </properties>
-    
+    <build>
+         <finalName>myapp</finalName>
+    </build>
+
     </project>
