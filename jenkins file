@@ -58,3 +58,93 @@ pipeline {
         }
     }
 }
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+pipeline {
+    agent any // Specifies that the pipeline can run on any available agent
+
+    tools {
+        // NOTE: 'M3' MUST match the name configured in 'Manage Jenkins -> Global Tool Configuration'
+        maven 'M3' 
+    }
+
+    environment {
+        // Core Project Variables
+        PROJECT_NAME = "E-commerce-project-springBoot" // Stored with caps
+        GITHUB_REPO_URL = "https://github.com/mdnishadnk/E-commerce-project-springBoot.git"
+        GITHUB_BRANCH = "main" 
+        GITHUB_CREDS_ID = "github-pat"
+        // 🛑 Docker Variables
+        DOCKER_HUB_USER = 'mdnishadnk' // <--- REPLACE with your Docker Hub username
+        DOCKER_CREDENTIAL_ID = 'docker-id'          // <--- REPLACE with your Credentials ID
+        
+        // 🛑 FIX APPLIED HERE: Use .toLowerCase() to ensure the repository name is valid
+        DOCKER_IMAGE_TAG = "${DOCKER_HUB_USER}/${PROJECT_NAME.toLowerCase()}:${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                sh 'echo "Starting Git Checkout for ${PROJECT_NAME}..."' 
+                git url: "${GITHUB_REPO_URL}", branch: "${GITHUB_BRANCH}", credentialsId: "${GITHUB_CREDS_ID}"
+                //git branch: "${GITHUB_BRANCH}", credentialsId: "${GITHUB_CREDS_ID}", url: "${GITHUB_REPO_URL}"
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        
+        stage('Docker Deploy') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: DOCKER_CREDENTIAL_ID,
+                    usernameVariable: 'DOCKER_USERNAME', 
+                    passwordVariable: 'DOCKER_PASSWORD'  
+                )]) {
+                    sh '''
+                        echo "--- Starting Docker Build and Push for ${DOCKER_IMAGE_TAG} ---"
+                        
+                        # 1. DOCKER LOGIN
+                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+                        
+                        # 2. DOCKER BUILD
+                        docker build -t ${DOCKER_IMAGE_TAG} .
+                        
+                        # 3. DOCKER PUSH
+                        docker push ${DOCKER_IMAGE_TAG}
+                        
+                        # 4. Cleanup
+                        docker logout
+                        
+                        echo "Docker push complete. Image is available at ${DOCKER_IMAGE_TAG}"
+                    '''
+                }
+            }
+        }
+    } // Closes the stages block
+    
+    post {
+        always {
+            cleanWs() // Clean up the workspace
+        }
+        success {
+            echo 'Pipeline succeeded! Check the logs for deployment details.'
+        }
+        failure {
+            echo 'Pipeline failed! Review the console output for errors.'
+        }
+    }
+} // Closes the pipeline block
+
+
