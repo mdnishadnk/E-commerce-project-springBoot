@@ -1,11 +1,15 @@
-# Stage 1: Build with Maven
+# --- Stage 1: Build the application ---
 FROM maven:3.9.11-eclipse-temurin-17-alpine AS build
 WORKDIR /app
+# Copy the project files
 COPY . .
+# Package the application (use -f to use the correct pom if not in root, otherwise omit)
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run with JRE
+# --- Stage 2: Create the final image ---
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/E-commerce-project-springBoot-0.0.1-SNAPSHOT.jar myapp.jar
-CMD ["java", "-jar", "myapp.jar"]
+# Copy the built JAR from the 'build' stage
+COPY --from=build /app/target/myapp.jar myapp.jar
+# The application runs by default from /app
+ENTRYPOINT ["java","-jar","myapp.jar"]
